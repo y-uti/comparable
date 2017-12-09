@@ -32,7 +32,7 @@ zend_module_entry comparable_module_entry = {
 	NULL,
 	PHP_MINIT(comparable),
 	NULL,
-	NULL,	
+	NULL,
 	NULL,
 	NULL,
 	"0.1",
@@ -47,41 +47,33 @@ zend_class_entry *comparable_ce;
 
 static zend_object_handlers comparable_handlers;
 
-static zend_object_value comparable_create_object_override(zend_class_entry *ce TSRMLS_DC)
+static zend_object *comparable_create_object_override(zend_class_entry *ce)
 {
 	zend_object *object;
-	zend_object_value retval;
 
-	retval = zend_objects_new(&object, ce TSRMLS_CC);
+	object = zend_objects_new(ce);
 	object_properties_init(object, ce);
 
-	retval.handlers = &comparable_handlers;
+	object->handlers = &comparable_handlers;
 
-	return retval;
+	return object;
 }
 
-static int comparable_compare_objects(zval *obj1, zval *obj2 TSRMLS_DC)
+static int comparable_compare_objects(zval *obj1, zval *obj2)
 {
-	zval *retval = NULL;
+	zval retval;
 	int result;
 
 	zend_call_method_with_2_params(NULL, Z_OBJCE_P(obj1), NULL, "compare", &retval, obj1, obj2);
-	
-	if (!retval || Z_TYPE_P(retval) == IS_NULL) {
-		if (retval) {
-			zval_ptr_dtor(&retval);
-		}
-		return zend_get_std_object_handlers()->compare_objects(obj1, obj2 TSRMLS_CC);
+
+	if (Z_TYPE(retval) == IS_NULL) {
+		return zend_get_std_object_handlers()->compare_objects(obj1, obj2);
 	}
 
-	convert_to_long_ex(&retval);
-	result = ZEND_NORMALIZE_BOOL(Z_LVAL_P(retval));
-	zval_ptr_dtor(&retval);
-
-	return result;
+	return ZEND_NORMALIZE_BOOL(Z_LVAL(retval));
 }
 
-static int implement_comparable(zend_class_entry *interface, zend_class_entry *ce TSRMLS_DC)
+static int implement_comparable(zend_class_entry *interface, zend_class_entry *ce)
 {
 	if (ce->create_object != NULL) {
 		zend_error(E_ERROR, "Comparable interface can only be used on userland classes");
@@ -106,7 +98,7 @@ PHP_MINIT_FUNCTION(comparable)
 {
 	zend_class_entry tmp_ce;
 	INIT_CLASS_ENTRY(tmp_ce, "Comparable", comparable_functions);
-	comparable_ce = zend_register_internal_interface(&tmp_ce TSRMLS_CC);
+	comparable_ce = zend_register_internal_interface(&tmp_ce);
 
 	comparable_ce->interface_gets_implemented = implement_comparable;
 
